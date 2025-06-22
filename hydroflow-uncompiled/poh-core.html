@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydroFlow Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>.form-group,h3{margin-bottom:8px}body,h3,input,select{color:var(--text-primary)}.result-value,h3,th{font-weight:600}.box.data-box,body,html{overflow:hidden}.log-box,.overlay-box{font-family:monospace}*{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;margin:0;padding:0;box-sizing:border-box}::-webkit-scrollbar{width:7px}.app-container,body,html{width:100%;height:100%}::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 6px #1a2030;-webkit-border-radius:10px;border-radius:10px}::-webkit-scrollbar-thumb{-webkit-border-radius:10px;border-radius:10px;background:rgb(116 112 148 / 45%);-webkit-box-shadow:inset 0 0 6px rgba(0,0,0,.5)}.box,input,select{border:1px solid var(--border-color)}:root{--bg-primary:#121620;--bg-secondary:#1a2030;--bg-tertiary:#232a3c;--accent-primary:#1e5f9e;--accent-secondary:#2a7dd2;--text-primary:#fcfcfc;--text-secondary:#fcfcfc;--border-color:#2d3748;--success-color:#2c7a7b;--input-bg:#1a2030;--shadow:0 2px 4px rgba(0, 0, 0, 0.2);--gap-size:4px}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:var(--bg-primary);line-height:1.4;padding:4px}.grid-layout{display:grid;grid-template-columns:300px 1fr;grid-template-rows:1fr 150px;gap:var(--gap-size);height:100%}.box{background-color:var(--bg-secondary);box-shadow:var(--shadow);padding:8px}.data-box,th{background-color:var(--bg-tertiary)}.input-box{grid-column:1;grid-row:1;overflow:auto}.results-box{grid-column:1;grid-row:2}.data-box{grid-column:2;grid-row:1;display:flex;justify-content:center;align-items:center}.btn-primary,.btn-primary:hover{background-color:var(--accent-secondary)}.log-box{grid-column:2;grid-row:2;overflow-y:auto;font-size:12px}h3{font-size:1rem;border-bottom:1px solid var(--border-color);padding-bottom:4px}label{display:block;margin-bottom:2px;color:var(--text-secondary);font-size:.85rem}.btn-primary,input,select{font-size:.9rem;width:100%}input,select{padding:4px 6px;border-radius:2px;background-color:var(--input-bg)}input:focus,select:focus{outline:0;border-color:var(--accent-primary)}.btn-primary{color:#fff;border:none;padding:6px;border-radius:2px;cursor:pointer;margin-top:8px}.result-item{display:flex;align-items:baseline;margin-bottom:4px}.result-label{color:var(--text-secondary);margin-right:4px;min-width:140px;font-size:.85rem}.result-value{color:var(--accent-secondary);font-size:.9rem}.no-data-message,.status-messages,.unit,th{color:var(--text-secondary)}.unit{margin-left:2px;font-size:.85rem}.no-data-message{font-size:2rem;font-weight:700;opacity:.5}.status-messages,table{font-size:.85rem}.status-message{margin:2px 0}.history-section{display:none;position:absolute;top:4px;left:4px;right:4px;bottom:4px;background-color:var(--bg-secondary);border:1px solid var(--border-color);padding:8px;z-index:10}.table-container{overflow-x:auto;height:calc(100% - 30px)}table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:4px 6px;border-bottom:1px solid var(--border-color)}th{position:sticky;top:0}.hidden{display:none;visibility:hidden;user-select:none;pointer-events:none}.box.data-box{position:relative;display:flex;justify-content:center;align-items:center;padding:10%}.overlay-box{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.85);padding:6px 10px;border:1px solid #444;font-size:12px;line-height:1.3;pointer-events:none}.box.data-box svg{width:100%;height:100%;display:block}.chart-container{width:100%;height:100%;position:relative}.chart-container canvas{width:100%!important;height:100%!important}@media (max-width:700px){.grid-layout{grid-template-columns:1fr;grid-template-rows:auto auto auto auto}.input-box{grid-column:1;grid-row:1;max-height:40vh;overflow-y:auto}.results-box{grid-column:1;grid-row:2}.data-box{grid-column:1;grid-row:3;height:30vh}.log-box{grid-column:1;grid-row:4}}</style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="grid-layout">
+            <!-- Input Parameters Box -->
+            <div class="box input-box">
+                <form id="flow-form">
+                    <div class="form-group">
+                        <label for="m">Součinitel přepadu (m)</label>
+                        <input type="number" step="0.01" id="m" required min="0.3" max="0.55" value="0.3" />
+                    </div>
+                    <div class="form-group">
+                        <label for="k_overflow">Kóta přelivu (m. n. m.)</label>
+                        <input type="number" step="0.01" id="k_overflow" required min="100" max="1000" value="100" />
+                    </div>
+                    <div class="form-group">
+                        <label for="k_level">Kóta hladiny (m. n. m.)</label>
+                        <input type="number" step="0.01" id="k_level" required min="100" max="1000" value="100" />
+                    </div>
+                    <div class="form-group">
+                        <label for="b">Šířka přelivu <i>b</i> (m)</label>
+                        <input type="number" step="0.01" id="b" required min="0" max="50" value="0.00" />
+                    </div>
+                    <div class="form-group">
+                        <label for="n">Počet pilířů <i>n</i></label>
+                        <input type="number" id="n" required min="0" max="5" step="1" value="0" />
+                    </div>
+                    <div class="form-group" id="shape-group">
+                        <label for="shape">Tvar pilíře</label>
+                        <select id="shape" name="shape">
+                            <option value="prism">Hranolovitý</option>
+                            <option value="rounded">Elipsovitý</option>
+                            <option value="pointy">Klínový</option>
+                            <option value="elliptical">Klínový s mírným zužením</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="k_max">Rozsah kóty hladiny pro konsumční křivku (cm)</label>
+                        <input type="text" id="k_max" required placeholder="100-200" value="100-200" />
+                    </div>
+                    <div class="form-group">
+                        <label for="segment">Velikost rozdělení pro výpočet (cm)</label>
+                        <input type="number" id="segment" required min="1" step="1" value="20" />
+                    </div>
+                    <button type="submit" id="calculate-btn" class="btn-primary">Vypočítat</button>
+                </form>
+            </div>
+            <!-- Results Box -->
+            <div class="box results-box">
+                <h3>Výsledky:</h3>
+                <div class="result-item">
+                    <span class="result-label">h (výška hladiny):</span>
+                    <span id="h_val" class="result-value">-</span><span class="unit">cm</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">b₀ (efektivní šířka):</span>
+                    <span id="b0_val" class="result-value">-</span><span class="unit">cm</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Q (průtok):</span>
+                    <span id="Q_val" class="result-value">-</span><span class="unit">m³/s</span>
+                </div>
+            </div>
+            <!-- Data Display Box -->
+            <div class="box data-box">
+                <div id="view-floorplan"></div>
+            </div>
+            <!-- Log Box -->
+            <div class="box log-box">
+                <div id="status-messages" class="status-messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <template id=config-1-0><svg class=inline-svg viewBox="0 0 70 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=60 x2=60 y1=70 y2=0 /><line x1=60 x2=70 y1=0 y2=0 /><line x1=70 x2=70 y1=0 y2=70 /><line x1=70 x2=60 y1=70 y2=70 /></svg></template><template id=config-1-1><svg class=inline-svg viewBox="0 0 70 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=60 x2=60 y1=70 y2=0 /><line x1=60 x2=70 y1=0 y2=0 /><line x1=70 x2=70 y1=0 y2=70 /><line x1=70 x2=60 y1=70 y2=70 /><line x1=30 x2=40 y1=20 y2=20 /><line x1=40 x2=40 y1=20 y2=50 /><line x1=40 x2=30 y1=50 y2=50 /><line x1=30 x2=30 y1=50 y2=20 /></svg></template><template id=config-1-2><svg class=inline-svg viewBox="0 0 100 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=40 y1=20 y2=20 /><line x1=40 x2=40 y1=20 y2=50 /><line x1=40 x2=30 y1=50 y2=50 /><line x1=30 x2=30 y1=50 y2=20 /><line x1=90 x2=90 y1=70 y2=0 /><line x1=100 x2=100 y1=0 y2=70 /><line x1=100 x2=90 y1=70 y2=70 /><line x1=90 x2=100 y1=0 y2=0 /><line x1=60 x2=70 y1=20 y2=20 /><line x1=70 x2=70 y1=20 y2=50 /><line x1=70 x2=60 y1=50 y2=50 /><line x1=60 x2=60 y1=50 y2=20 /></svg></template><template id=config-1-3><svg class=inline-svg viewBox="0 0 130 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=40 y1=20 y2=20 /><line x1=40 x2=40 y1=20 y2=50 /><line x1=40 x2=30 y1=50 y2=50 /><line x1=30 x2=30 y1=50 y2=20 /><line x1=60 x2=70 y1=20 y2=20 /><line x1=70 x2=70 y1=20 y2=50 /><line x1=70 x2=60 y1=50 y2=50 /><line x1=60 x2=60 y1=50 y2=20 /><line x1=120 x2=120 y1=70 y2=0 /><line x1=130 x2=130 y1=0 y2=70 /><line x1=130 x2=120 y1=70 y2=70 /><line x1=120 x2=130 y1=0 y2=0 /><line x1=90 x2=100 y1=20 y2=20 /><line x1=100 x2=100 y1=20 y2=50 /><line x1=100 x2=90 y1=50 y2=50 /><line x1=90 x2=90 y1=50 y2=20 /></svg></template><template id=config-1-4><svg class=inline-svg viewBox="0 0 160 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=40 y1=20 y2=20 /><line x1=40 x2=40 y1=20 y2=50 /><line x1=40 x2=30 y1=50 y2=50 /><line x1=30 x2=30 y1=50 y2=20 /><line x1=60 x2=70 y1=20 y2=20 /><line x1=70 x2=70 y1=20 y2=50 /><line x1=70 x2=60 y1=50 y2=50 /><line x1=60 x2=60 y1=50 y2=20 /><line x1=90 x2=100 y1=20 y2=20 /><line x1=100 x2=100 y1=20 y2=50 /><line x1=100 x2=90 y1=50 y2=50 /><line x1=90 x2=90 y1=50 y2=20 /><line x1=150 x2=150 y1=70 y2=0 /><line x1=160 x2=160 y1=0 y2=70 /><line x1=160 x2=150 y1=70 y2=70 /><line x1=150 x2=160 y1=0 y2=0 /><line x1=120 x2=130 y1=20 y2=20 /><line x1=130 x2=130 y1=20 y2=50 /><line x1=130 x2=120 y1=50 y2=50 /><line x1=120 x2=120 y1=50 y2=20 /></svg></template><template id=config-1-5><svg class=inline-svg viewBox="0 0 190 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=40 y1=20 y2=20 /><line x1=40 x2=40 y1=20 y2=50 /><line x1=40 x2=30 y1=50 y2=50 /><line x1=30 x2=30 y1=50 y2=20 /><line x1=60 x2=70 y1=20 y2=20 /><line x1=70 x2=70 y1=20 y2=50 /><line x1=70 x2=60 y1=50 y2=50 /><line x1=60 x2=60 y1=50 y2=20 /><line x1=90 x2=100 y1=20 y2=20 /><line x1=100 x2=100 y1=20 y2=50 /><line x1=100 x2=90 y1=50 y2=50 /><line x1=90 x2=90 y1=50 y2=20 /><line x1=120 x2=130 y1=20 y2=20 /><line x1=130 x2=130 y1=20 y2=50 /><line x1=130 x2=120 y1=50 y2=50 /><line x1=120 x2=120 y1=50 y2=20 /><line x1=180 x2=180 y1=70 y2=0 /><line x1=190 x2=190 y1=0 y2=70 /><line x1=190 x2=180 y1=70 y2=70 /><line x1=180 x2=190 y1=0 y2=0 /><line x1=150 x2=160 y1=20 y2=20 /><line x1=160 x2=160 y1=20 y2=50 /><line x1=160 x2=150 y1=50 y2=50 /><line x1=150 x2=150 y1=50 y2=20 /></svg></template><template id=config-2-1><svg class=inline-svg viewBox="0 0 70 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=60 x2=60 y1=70 y2=0 /><line x1=70 x2=70 y1=0 y2=70 /><line x1=70 x2=60 y1=70 y2=70 /><line x1=60 x2=70 y1=0 y2=0 /><line x1=40 x2=40 y1=25 y2=47 /><path d="M39.99881894,24.89133002 A5,5 0 0,0 30.00104091,24.89798043 "/><path d="M30.00118106,47.10866998 A5,5 0 0,0 39.99895909,47.10201957 "/></svg></template><template id=config-2-2><svg class=inline-svg viewBox="0 0 100 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=90 x2=90 y1=70 y2=0 /><line x1=100 x2=100 y1=0 y2=70 /><line x1=100 x2=90 y1=70 y2=70 /><line x1=90 x2=100 y1=0 y2=0 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><path d="M39.99881894,24.89133002 A5,5 0 0,0 30.00104091,24.89798043 "/><path d="M30.00118106,47.10866998 A5,5 0 0,0 39.99895909,47.10201957 "/><path d="M69.99881894,24.89133002 A5,5 0 0,0 60.00104091,24.89798043 "/><path d="M60.00118106,47.10866998 A5,5 0 0,0 69.99895909,47.10201957 "/></svg></template><template id=config-2-3><svg class=inline-svg viewBox="0 0 130 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=120 x2=120 y1=70 y2=0 /><line x1=130 x2=130 y1=0 y2=70 /><line x1=130 x2=120 y1=70 y2=70 /><line x1=120 x2=130 y1=0 y2=0 /><path d="M39.99881894,24.89133002 A5,5 0 0,0 30.00104091,24.89798043 "/><path d="M30.00118106,47.10866998 A5,5 0 0,0 39.99895909,47.10201957 "/><path d="M69.99881894,24.89133002 A5,5 0 0,0 60.00104091,24.89798043 "/><path d="M60.00118106,47.10866998 A5,5 0 0,0 69.99895909,47.10201957 "/><path d="M99.99881894,24.89133002 A5,5 0 0,0 90.00104091,24.89798043 "/><path d="M90.00118106,47.10866998 A5,5 0 0,0 99.99895909,47.10201957 "/></svg></template><template id=config-2-4><svg class=inline-svg viewBox="0 0 160 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=150 x2=150 y1=70 y2=0 /><line x1=160 x2=160 y1=0 y2=70 /><line x1=160 x2=150 y1=70 y2=70 /><line x1=150 x2=160 y1=0 y2=0 /><line x1=120 x2=120 y1=25 y2=47 /><line x1=130 x2=130 y1=25 y2=47 /><path d="M39.99881894,24.89133002 A5,5 0 0,0 30.00104091,24.89798043 "/><path d="M30.00118106,47.10866998 A5,5 0 0,0 39.99895909,47.10201957 "/><path d="M69.99881894,24.89133002 A5,5 0 0,0 60.00104091,24.89798043 "/><path d="M60.00118106,47.10866998 A5,5 0 0,0 69.99895909,47.10201957 "/><path d="M99.99881894,24.89133002 A5,5 0 0,0 90.00104091,24.89798043 "/><path d="M90.00118106,47.10866998 A5,5 0 0,0 99.99895909,47.10201957 "/><path d="M129.99881894,24.89133002 A5,5 0 0,0 120.00104091,24.89798043 "/><path d="M120.00118106,47.10866998 A5,5 0 0,0 129.99895909,47.10201957 "/></svg></template><template id=config-2-5><svg class=inline-svg viewBox="0 0 190 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=120 x2=120 y1=25 y2=47 /><line x1=130 x2=130 y1=25 y2=47 /><line x1=150 x2=150 y1=25 y2=47 /><line x1=160 x2=160 y1=25 y2=47 /><line x1=180 x2=180 y1=70 y2=0 /><line x1=190 x2=190 y1=0 y2=70 /><line x1=190 x2=180 y1=70 y2=70 /><line x1=180 x2=190 y1=0 y2=0 /><path d="M39.99881894,24.89133002 A5,5 0 0,0 30.00104091,24.89798043 "/><path d="M30.00118106,47.10866998 A5,5 0 0,0 39.99895909,47.10201957 "/><path d="M69.99881894,24.89133002 A5,5 0 0,0 60.00104091,24.89798043 "/><path d="M60.00118106,47.10866998 A5,5 0 0,0 69.99895909,47.10201957 "/><path d="M99.99881894,24.89133002 A5,5 0 0,0 90.00104091,24.89798043 "/><path d="M90.00118106,47.10866998 A5,5 0 0,0 99.99895909,47.10201957 "/><path d="M129.99881894,24.89133002 A5,5 0 0,0 120.00104091,24.89798043 "/><path d="M120.00118106,47.10866998 A5,5 0 0,0 129.99895909,47.10201957 "/><path d="M159.99881894,24.89133002 A5,5 0 0,0 150.00104091,24.89798043 "/><path d="M150.00118106,47.10866998 A5,5 0 0,0 159.99895909,47.10201957 "/></svg></template><template id=config-3-1><svg class=inline-svg viewBox="0 0 70 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=40 x2=35 y1=25 y2=16 /><line x1=35 x2=30 y1=16 y2=25 /><line x1=40 x2=35 y1=47 y2=55 /><line x1=35 x2=30 y1=55 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=60 x2=60 y1=70 y2=0 /><line x1=70 x2=70 y1=0 y2=70 /><line x1=70 x2=60 y1=70 y2=70 /><line x1=60 x2=70 y1=0 y2=0 /></svg></template><template id=config-3-2><svg class=inline-svg viewBox="0 0 100 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=40 x2=35 y1=25 y2=16 /><line x1=35 x2=30 y1=16 y2=25 /><line x1=40 x2=35 y1=47 y2=55 /><line x1=35 x2=30 y1=55 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=70 x2=65 y1=25 y2=16 /><line x1=65 x2=60 y1=16 y2=25 /><line x1=70 x2=65 y1=47 y2=55 /><line x1=65 x2=60 y1=55 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=90 x2=90 y1=70 y2=0 /><line x1=100 x2=100 y1=0 y2=70 /><line x1=100 x2=90 y1=70 y2=70 /><line x1=90 x2=100 y1=0 y2=0 /></svg></template><template id=config-3-3><svg class=inline-svg viewBox="0 0 130 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=40 x2=35 y1=25 y2=16 /><line x1=35 x2=30 y1=16 y2=25 /><line x1=40 x2=35 y1=47 y2=55 /><line x1=35 x2=30 y1=55 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=70 x2=65 y1=25 y2=16 /><line x1=65 x2=60 y1=16 y2=25 /><line x1=70 x2=65 y1=47 y2=55 /><line x1=65 x2=60 y1=55 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=100 x2=95 y1=25 y2=16 /><line x1=95 x2=90 y1=16 y2=25 /><line x1=100 x2=95 y1=47 y2=55 /><line x1=95 x2=90 y1=55 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=120 x2=120 y1=70 y2=0 /><line x1=130 x2=130 y1=0 y2=70 /><line x1=130 x2=120 y1=70 y2=70 /><line x1=120 x2=130 y1=0 y2=0 /></svg></template><template id=config-3-4><svg class=inline-svg viewBox="0 0 160 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=40 x2=35 y1=25 y2=16 /><line x1=35 x2=30 y1=16 y2=25 /><line x1=40 x2=35 y1=47 y2=55 /><line x1=35 x2=30 y1=55 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=150 x2=150 y1=70 y2=0 /><line x1=160 x2=160 y1=0 y2=70 /><line x1=160 x2=150 y1=70 y2=70 /><line x1=150 x2=160 y1=0 y2=0 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=70 x2=65 y1=25 y2=16 /><line x1=65 x2=60 y1=16 y2=25 /><line x1=70 x2=65 y1=47 y2=55 /><line x1=65 x2=60 y1=55 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=100 x2=95 y1=25 y2=16 /><line x1=95 x2=90 y1=16 y2=25 /><line x1=100 x2=95 y1=47 y2=55 /><line x1=95 x2=90 y1=55 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=130 x2=130 y1=25 y2=47 /><line x1=130 x2=125 y1=25 y2=16 /><line x1=125 x2=120 y1=16 y2=25 /><line x1=130 x2=125 y1=47 y2=55 /><line x1=125 x2=120 y1=55 y2=47 /><line x1=120 x2=120 y1=25 y2=47 /></svg></template><template id=config-3-5><svg class=inline-svg viewBox="0 0 190 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=180 x2=180 y1=70 y2=0 /><line x1=190 x2=190 y1=0 y2=70 /><line x1=190 x2=180 y1=70 y2=70 /><line x1=180 x2=190 y1=0 y2=0 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=47 y2=25 /><line x1=40 x2=35 y1=25 y2=16 /><line x1=35 x2=30 y1=16 y2=25 /><line x1=40 x2=35 y1=47 y2=55 /><line x1=35 x2=30 y1=55 y2=47 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=60 x2=60 y1=47 y2=25 /><line x1=70 x2=65 y1=25 y2=16 /><line x1=65 x2=60 y1=16 y2=25 /><line x1=70 x2=65 y1=47 y2=55 /><line x1=65 x2=60 y1=55 y2=47 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=90 x2=90 y1=47 y2=25 /><line x1=100 x2=95 y1=25 y2=16 /><line x1=95 x2=90 y1=16 y2=25 /><line x1=100 x2=95 y1=47 y2=55 /><line x1=95 x2=90 y1=55 y2=47 /><line x1=130 x2=130 y1=25 y2=47 /><line x1=120 x2=120 y1=47 y2=25 /><line x1=130 x2=125 y1=25 y2=16 /><line x1=125 x2=120 y1=16 y2=25 /><line x1=130 x2=125 y1=47 y2=55 /><line x1=125 x2=120 y1=55 y2=47 /><line x1=160 x2=160 y1=25 y2=47 /><line x1=150 x2=150 y1=47 y2=25 /><line x1=160 x2=155 y1=25 y2=16 /><line x1=155 x2=150 y1=16 y2=25 /><line x1=160 x2=155 y1=47 y2=55 /><line x1=155 x2=150 y1=55 y2=47 /></svg></template><template id=config-4-1><svg class=inline-svg viewBox="0 0 70 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=60 x2=60 y1=70 y2=0 /><line x1=70 x2=70 y1=0 y2=70 /><line x1=70 x2=60 y1=70 y2=70 /><line x1=60 x2=70 y1=0 y2=0 /><line x1=40 x2=38 y1=25 y2=20 /><line x1=30 x2=32 y1=25 y2=20 /><line x1=38 x2=35 y1=20 y2=17 /><line x1=32 x2=35 y1=20 y2=17 /><line x1=30 x2=32 y1=47 y2=52 /><line x1=40 x2=38 y1=47 y2=52 /><line x1=32 x2=35 y1=52 y2=55 /><line x1=38 x2=35 y1=52 y2=55 /></svg></template><template id=config-4-2><svg class=inline-svg viewBox="0 0 100 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=38 y1=25 y2=20 /><line x1=30 x2=32 y1=25 y2=20 /><line x1=38 x2=35 y1=20 y2=17 /><line x1=32 x2=35 y1=20 y2=17 /><line x1=30 x2=32 y1=47 y2=52 /><line x1=40 x2=38 y1=47 y2=52 /><line x1=32 x2=35 y1=52 y2=55 /><line x1=38 x2=35 y1=52 y2=55 /><line x1=90 x2=90 y1=70 y2=0 /><line x1=100 x2=100 y1=0 y2=70 /><line x1=100 x2=90 y1=70 y2=70 /><line x1=90 x2=100 y1=0 y2=0 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=68 y1=25 y2=20 /><line x1=60 x2=62 y1=25 y2=20 /><line x1=68 x2=65 y1=20 y2=17 /><line x1=62 x2=65 y1=20 y2=17 /><line x1=60 x2=62 y1=47 y2=52 /><line x1=70 x2=68 y1=47 y2=52 /><line x1=62 x2=65 y1=52 y2=55 /><line x1=68 x2=65 y1=52 y2=55 /></svg></template><template id=config-4-3><svg class=inline-svg viewBox="0 0 130 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=38 y1=25 y2=20 /><line x1=30 x2=32 y1=25 y2=20 /><line x1=38 x2=35 y1=20 y2=17 /><line x1=32 x2=35 y1=20 y2=17 /><line x1=30 x2=32 y1=47 y2=52 /><line x1=40 x2=38 y1=47 y2=52 /><line x1=32 x2=35 y1=52 y2=55 /><line x1=38 x2=35 y1=52 y2=55 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=68 y1=25 y2=20 /><line x1=60 x2=62 y1=25 y2=20 /><line x1=68 x2=65 y1=20 y2=17 /><line x1=62 x2=65 y1=20 y2=17 /><line x1=60 x2=62 y1=47 y2=52 /><line x1=70 x2=68 y1=47 y2=52 /><line x1=62 x2=65 y1=52 y2=55 /><line x1=68 x2=65 y1=52 y2=55 /><line x1=120 x2=120 y1=70 y2=0 /><line x1=130 x2=130 y1=0 y2=70 /><line x1=130 x2=120 y1=70 y2=70 /><line x1=120 x2=130 y1=0 y2=0 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=98 y1=25 y2=20 /><line x1=90 x2=92 y1=25 y2=20 /><line x1=98 x2=95 y1=20 y2=17 /><line x1=92 x2=95 y1=20 y2=17 /><line x1=90 x2=92 y1=47 y2=52 /><line x1=100 x2=98 y1=47 y2=52 /><line x1=92 x2=95 y1=52 y2=55 /><line x1=98 x2=95 y1=52 y2=55 /></svg></template><template id=config-4-4><svg class=inline-svg viewBox="0 0 160 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=38 y1=25 y2=20 /><line x1=30 x2=32 y1=25 y2=20 /><line x1=38 x2=35 y1=20 y2=17 /><line x1=32 x2=35 y1=20 y2=17 /><line x1=30 x2=32 y1=47 y2=52 /><line x1=40 x2=38 y1=47 y2=52 /><line x1=32 x2=35 y1=52 y2=55 /><line x1=38 x2=35 y1=52 y2=55 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=68 y1=25 y2=20 /><line x1=60 x2=62 y1=25 y2=20 /><line x1=68 x2=65 y1=20 y2=17 /><line x1=62 x2=65 y1=20 y2=17 /><line x1=60 x2=62 y1=47 y2=52 /><line x1=70 x2=68 y1=47 y2=52 /><line x1=62 x2=65 y1=52 y2=55 /><line x1=68 x2=65 y1=52 y2=55 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=98 y1=25 y2=20 /><line x1=90 x2=92 y1=25 y2=20 /><line x1=98 x2=95 y1=20 y2=17 /><line x1=92 x2=95 y1=20 y2=17 /><line x1=90 x2=92 y1=47 y2=52 /><line x1=100 x2=98 y1=47 y2=52 /><line x1=92 x2=95 y1=52 y2=55 /><line x1=98 x2=95 y1=52 y2=55 /><line x1=150 x2=150 y1=70 y2=0 /><line x1=160 x2=160 y1=0 y2=70 /><line x1=160 x2=150 y1=70 y2=70 /><line x1=150 x2=160 y1=0 y2=0 /><line x1=130 x2=130 y1=25 y2=47 /><line x1=120 x2=120 y1=25 y2=47 /><line x1=130 x2=128 y1=25 y2=20 /><line x1=120 x2=122 y1=25 y2=20 /><line x1=128 x2=125 y1=20 y2=17 /><line x1=122 x2=125 y1=20 y2=17 /><line x1=120 x2=122 y1=47 y2=52 /><line x1=130 x2=128 y1=47 y2=52 /><line x1=122 x2=125 y1=52 y2=55 /><line x1=128 x2=125 y1=52 y2=55 /></svg></template><template id=config-4-5><svg class=inline-svg viewBox="0 0 190 70"xmlns=http://www.w3.org/2000/svg><style>line,path{stroke:#fcfcfc;stroke-width:1px;fill:none}</style><line x1=0 x2=10 y1=70 y2=70 /><line x1=10 x2=10 y1=70 y2=0 /><line x1=10 x2=0 y1=0 y2=0 /><line x1=0 x2=0 y1=0 y2=70 /><line x1=40 x2=40 y1=25 y2=47 /><line x1=30 x2=30 y1=25 y2=47 /><line x1=40 x2=38 y1=25 y2=20 /><line x1=30 x2=32 y1=25 y2=20 /><line x1=38 x2=35 y1=20 y2=17 /><line x1=32 x2=35 y1=20 y2=17 /><line x1=30 x2=32 y1=47 y2=52 /><line x1=40 x2=38 y1=47 y2=52 /><line x1=32 x2=35 y1=52 y2=55 /><line x1=38 x2=35 y1=52 y2=55 /><line x1=70 x2=70 y1=25 y2=47 /><line x1=60 x2=60 y1=25 y2=47 /><line x1=70 x2=68 y1=25 y2=20 /><line x1=60 x2=62 y1=25 y2=20 /><line x1=68 x2=65 y1=20 y2=17 /><line x1=62 x2=65 y1=20 y2=17 /><line x1=60 x2=62 y1=47 y2=52 /><line x1=70 x2=68 y1=47 y2=52 /><line x1=62 x2=65 y1=52 y2=55 /><line x1=68 x2=65 y1=52 y2=55 /><line x1=100 x2=100 y1=25 y2=47 /><line x1=90 x2=90 y1=25 y2=47 /><line x1=100 x2=98 y1=25 y2=20 /><line x1=90 x2=92 y1=25 y2=20 /><line x1=98 x2=95 y1=20 y2=17 /><line x1=92 x2=95 y1=20 y2=17 /><line x1=90 x2=92 y1=47 y2=52 /><line x1=100 x2=98 y1=47 y2=52 /><line x1=92 x2=95 y1=52 y2=55 /><line x1=98 x2=95 y1=52 y2=55 /><line x1=130 x2=130 y1=25 y2=47 /><line x1=120 x2=120 y1=25 y2=47 /><line x1=130 x2=128 y1=25 y2=20 /><line x1=120 x2=122 y1=25 y2=20 /><line x1=128 x2=125 y1=20 y2=17 /><line x1=122 x2=125 y1=20 y2=17 /><line x1=120 x2=122 y1=47 y2=52 /><line x1=130 x2=128 y1=47 y2=52 /><line x1=122 x2=125 y1=52 y2=55 /><line x1=128 x2=125 y1=52 y2=55 /><line x1=180 x2=180 y1=70 y2=0 /><line x1=190 x2=190 y1=0 y2=70 /><line x1=190 x2=180 y1=70 y2=70 /><line x1=180 x2=190 y1=0 y2=0 /><line x1=160 x2=160 y1=25 y2=47 /><line x1=150 x2=150 y1=25 y2=47 /><line x1=160 x2=158 y1=25 y2=20 /><line x1=150 x2=152 y1=25 y2=20 /><line x1=158 x2=155 y1=20 y2=17 /><line x1=152 x2=155 y1=20 y2=17 /><line x1=150 x2=152 y1=47 y2=52 /><line x1=160 x2=158 y1=47 y2=52 /><line x1=152 x2=155 y1=52 y2=55 /><line x1=158 x2=155 y1=52 y2=55 /></svg></template>
+
+    <!-- Include the renderer script for Electron IPC -->
+    <script src="renderer.js"></script>
+
+    <script>
+        // Global variables for Electron export functionality
+        window.appLogs = []; // Store all log messages
+        window.currentChart = null; // Store current chart instance
+        window.axesSwapped = false; // Track axes state
+
+        // Floor plan handling
+        const dataBox = document.querySelector('.box.data-box');
+        const nInput = document.getElementById('n');
+        const shapeSelect = document.getElementById('shape');
+        const logBox = document.getElementById('status-messages');
+        const shapeGroup = document.getElementById('shape-group'); // corrected ID
+
+        function getTimestamp() {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} ${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
+        }
+
+        function logMessage(msg, isError = false) {
+            const timestamp = getTimestamp();
+            const fullMessage = `[${timestamp}] ${isError ? '[Error] ' : ''}${msg}`;
+            
+            // Store in global array
+            window.appLogs.push({
+                timestamp: timestamp,
+                message: msg,
+                isError: isError,
+                fullMessage: fullMessage
+            });
+            
+            // Display in DOM
+            const p = document.createElement('p');
+            p.textContent = fullMessage;
+            p.style.color = isError ? 'red' : '#fcfcfc';
+            logBox.appendChild(p);
+            p.scrollIntoView({ block: 'end' });
+        }
+
+        logMessage('Welcome to Hydroflow :)'); //Greet the user (very important)
+
+        function loadFloorPlan() {
+            const typeKey = shapeSelect.value;
+            const x = { prism: 1, rounded: 2, pointy: 3, elliptical: 4 }[typeKey];
+            const y = nInput.value;
+            const n = parseInt(y, 10) || 0;
+            
+            // Force config-1-0 when n is 0
+            const finalX = n === 0 ? 1 : x;
+            const finalY = n === 0 ? 0 : y;
+            
+            const tplId = `config-${finalX}-${finalY}`;
+            logMessage(`Loading Configs/config-${finalX}-${finalY}.svg`);
+
+            dataBox.innerHTML = '';
+
+            const tpl = document.getElementById(tplId);
+            if (tpl) {
+                dataBox.appendChild(tpl.content.cloneNode(true));
+                logMessage(`Loaded config-${finalX}-${finalY}`);
+            } else {
+                const errMsg = `Failed to load Configs/config-${finalX}-${finalY}.svg`;
+                dataBox.innerHTML = `<p style="color:red;padding:1em;">Chyba načítání SVG:
+  <strong>Configs/config-${finalX}-${finalY}.svg</strong></p>`;
+                logMessage(errMsg, true);
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay-box';
+            const bVal = parseFloat(document.getElementById('b').value) || 0;
+            const nVal = n; // Use the actual n value
+            const typeText = shapeSelect.options[shapeSelect.selectedIndex].text;
+            
+            // Force eta to 1.0 when n is 0, regardless of selected shape
+            let etaVal;
+            if (n === 0) {
+                etaVal = 1.0;
+            } else {
+                if (typeKey === 'rounded') etaVal = 0.8;
+                else if (typeKey === 'pointy') etaVal = 0.7;
+                else if (typeKey === 'elliptical') etaVal = 0.4;
+                else etaVal = 1.0; // prism default
+            }
+            
+            overlay.innerHTML = `b = ${bVal} m<br>n = ${nVal}<br>typ pil\u00ED\u0159e = ${typeText}<br>\u03BE = ${etaVal}`;
+            overlay.style.backgroundColor = '#1a2030';
+            dataBox.appendChild(overlay);
+        }
+
+        function toggleShapeVisibility() {
+            const n = parseInt(nInput.value, 10);
+            if (!isNaN(n)) {
+                shapeGroup.classList.toggle('hidden', n === 0);
+                
+                // If n is 0, reset to default values
+                if (n === 0) {
+                    shapeSelect.value = 'prism'; // Reset to default shape
+                }
+            }
+        }
+
+        // Initial setup
+        toggleShapeVisibility();
+
+        // Event bindings
+        nInput.addEventListener('input', () => {
+            toggleShapeVisibility();
+            loadFloorPlan();
+        });
+
+        shapeSelect.addEventListener('change', loadFloorPlan);
+        document.getElementById('b').addEventListener('input', loadFloorPlan);
+        window.addEventListener('load', loadFloorPlan);
+    </script>
+
+    <script>
+        // Calculation logic with consumption curve
+        document.addEventListener('DOMContentLoaded', () => {
+            const g = 9.81;
+            const nInput = document.getElementById('n');
+            const shapeGroup = document.getElementById('shape-group'); // use correct ID here too
+
+            function toggleShapeDropdown() {
+                const n = parseInt(nInput.value, 10);
+                if (!isNaN(n)) {
+                    shapeGroup.classList.toggle('hidden', n === 0);
+                }
+            }
+
+            function calculateQImproved(m, b, h, eta, n) {
+                let Qraw = m * b * Math.sqrt(2 * g * Math.pow(h, 3));
+                let b0;
+                for (let i = 1; i <= 10; i++) {
+                    const v = Qraw / (b * h);
+                    const head = (v * v) / (2 * g);
+                    const h0 = h + head;
+                    b0 = b - 0.1 * eta * n * h0;
+                    const Qimproved = m * b0 * Math.sqrt(2 * g) * Math.pow(h, 1.5);
+                    Qraw = Qimproved;
+                }
+                return { Q: Qraw, b0: b0 };
+            }
+
+            function generateConsumptionChart(waterLevels, qValues) {
+                const chartHTML = `
+                    <div class="chart-container">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                `;
+                
+                dataBox.style.padding = "0";
+                dataBox.innerHTML = chartHTML;
+                
+                // Create scatter plot data with x,y coordinates - NO LABELS!
+                let chartData, xLabel, yLabel;
+                
+                if (window.axesSwapped) {
+                    // Swapped: Q on X-axis, Height on Y-axis
+                    chartData = waterLevels.map((level, index) => ({
+                        x: qValues[index],  // Q value as X coordinate
+                        y: level           // Height as Y coordinate
+                    }));
+                    xLabel = 'Průtok Q (m³/s)';
+                    yLabel = 'Výška hladiny (cm)';
+                } else {
+                    // Normal: Height on X-axis, Q on Y-axis
+                    chartData = waterLevels.map((level, index) => ({
+                        x: level,          // Height as X coordinate  
+                        y: qValues[index]  // Q value as Y coordinate
+                    }));
+                    xLabel = 'Výška hladiny (cm)';
+                    yLabel = 'Průtok Q (m³/s)';
+                }
+                
+                const data = {
+                    datasets: [{
+                        label: window.axesSwapped ? 'Výška hladiny' : 'Průtok (Q)',
+                        data: chartData,  // Using x,y coordinates, not labels!
+                        borderColor: '#1e40af',
+                        backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#1e40af',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#60a5fa',
+                        pointHoverBorderColor: '#1e40af',
+                        showLine: true  // Show line connecting points
+                    }]
+                };
+
+                const config = {
+                    type: 'scatter',  // Scatter chart allows Chart.js to create its own axis labels
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#cbd5e1',
+                                borderColor: '#334155',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return ''; // No title
+                                    },
+                                    label: function(context) {
+                                        if (window.axesSwapped) {
+                                            return `Hladina: ${context.parsed.y}cm, Q: ${context.parsed.x.toFixed(3)} m³/s`;
+                                        } else {
+                                            return `Hladina: ${context.parsed.x}cm, Q: ${context.parsed.y.toFixed(3)} m³/s`;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',  // Let Chart.js create nice axis labels automatically
+                                title: {
+                                    display: true,
+                                    text: xLabel,
+                                    color: '#cbd5e1',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(203, 213, 225, 0.1)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            },
+                            y: {
+                                type: 'linear',  // Let Chart.js create nice axis labels automatically
+                                title: {
+                                    display: true,
+                                    text: yLabel,
+                                    color: '#cbd5e1',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(203, 213, 225, 0.1)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: {
+                                        size: 11
+                                    }
+                                },
+                                beginAtZero: true
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'point'
+                        }
+                    }
+                };
+
+                // Destroy existing chart if it exists
+                if (window.currentChart) {
+                    window.currentChart.destroy();
+                }
+
+                const ctx = document.getElementById('consumptionChart').getContext('2d');
+                window.currentChart = new Chart(ctx, config);
+                
+                // Store chart data globally for export
+                window.currentChart.originalWaterLevels = waterLevels;
+                window.currentChart.originalQValues = qValues;
+            }
+
+            toggleShapeDropdown();
+            nInput.addEventListener('input', toggleShapeDropdown);
+
+            document.getElementById('flow-form').addEventListener('submit', event => {
+                event.preventDefault();
+
+                const calculateBtn = document.getElementById('calculate-btn');
+                
+                // Check current button state
+                if (calculateBtn.textContent === 'Zobrazit půdorys') {
+                    dataBox.style.padding = "10%";
+                    // Switch back to floor plan view
+                    loadFloorPlan();
+                    calculateBtn.textContent = 'Vypočítat';
+                    return;
+                }
+
+                const m = parseFloat(document.getElementById('m').value);
+                const kO = parseFloat(document.getElementById('k_overflow').value);
+                const kL = parseFloat(document.getElementById('k_level').value);
+                const b = parseFloat(document.getElementById('b').value);
+                const n = parseInt(nInput.value, 10);
+                const shapeSelect = document.getElementById('shape');
+                const typeKey = shapeSelect.value;
+                const typeText = shapeSelect.options[shapeSelect.selectedIndex].text;
+                const kMaxInput = document.getElementById('k_max').value.trim();
+                const segment = parseInt(document.getElementById('segment').value, 10);
+
+                // Parse and validate k_max range input
+                const rangeMatch = kMaxInput.match(/^(\d{1,4})-(\d{1,4})$/);
+                if (!rangeMatch) {
+                    logMessage('Chyba: Rozsah kóty hladiny musí být ve formátu XXXX-XXXX (např. 100-200)', true);
+                    return;
+                }
+
+                if (b <= 0) {
+                    logMessage('Chyba: Šířka přelivu nemůže být nulová nebo záporná', true);
+                    return;
+                }
+
+                const kMin = parseInt(rangeMatch[1], 10);
+                const kMax = parseInt(rangeMatch[2], 10);
+
+                if (kMin >= kMax) {
+                    logMessage('Chyba: Počáteční hodnota rozsahu musí být menší než koncová hodnota', true);
+                    return;
+                }
+
+                // Input validations
+                if (m < 0.3 || m > 0.55) {
+                    logMessage('Chyba: Součinitel přepadu (m) musí být mezi 0.3 a 0.55', true);
+                    return;
+                }
+
+                if (kO > kL) {
+                    logMessage('Chyba: Kóta přelivu nemůže být větší než kóta hladiny', true);
+                    return;
+                }
+
+                if ((kMax - kMin) % segment !== 0) {
+                    logMessage(`Chyba: Rozsah kóty hladiny (${kMax - kMin}cm) musí být dělitelný velikostí segmentu (${segment}cm)`, true);
+                    return;
+                }
+
+                let eta;
+                if (typeKey === 'prism') eta = 1.0;
+                else if (typeKey === 'rounded') eta = 0.8;
+                else if (typeKey === 'pointy') eta = 0.7;
+                else if (typeKey === 'elliptical') eta = 0.4;
+
+                // Calculate for current height first
+                const h = kL - kO;
+                logMessage(`m = ${m}, kóta hladiny = ${kL}, kóta přelivu = ${kO}, b = ${b}, n = ${n}, typ = ${typeText}, ξ = ${eta}`);
+
+                const currentResult = calculateQImproved(m, b, h, eta, n);
+
+                // Generate consumption curve data
+                const waterLevels = [];
+                const qValues = [];
+                
+                logMessage(`Generating consumption curve: rozsah = ${kMin}-${kMax}cm, segment = ${segment}cm`);
+                
+                for (let level = kMin; level <= kMax; level += segment) {
+                    const hLevel = level / 100; // Convert cm to meters
+                    const result = calculateQImproved(m, b, hLevel, eta, n);
+                    waterLevels.push(level);
+                    qValues.push(result.Q);
+                    logMessage(`Level ${level}cm: h = ${hLevel.toFixed(3)}m, Q = ${result.Q.toFixed(6)} m³/s`);
+                }
+
+                // Clear data box and generate chart
+                dataBox.innerHTML = '';
+                generateConsumptionChart(waterLevels, qValues);
+
+                // Update results for current level
+                document.getElementById('h_val').textContent = h.toFixed(2) * 100;
+                document.getElementById('b0_val').textContent = currentResult.b0.toFixed(2) * 100;
+                document.getElementById('Q_val').textContent = currentResult.Q.toFixed(3);
+
+                logMessage(`Chart generated with ${waterLevels.length} data points`);
+                
+                // Change button text to show floor plan option
+                calculateBtn.textContent = 'Zobrazit půdorys';
+            });
+        });
+    </script>
+</body>
+
+</html>
